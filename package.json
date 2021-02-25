@@ -1,0 +1,23 @@
+{
+  "name": "durak",
+  "version": "1.0.0",
+  "description": "Implementation of the card game Durak in HTML and JavaScript so that I can learn how to make web games.\r Sections of code copied from MDN tutorial for javascript games: https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jgilles23/Durak.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jgilles23/Durak/issues"
+  },
+  "homepage": "https://github.com/jgilles23/Durak#readme",
+  "devDependencies": {
+    "eslint": "^7.20.0",
+    "eslint-plugin-html": "^6.1.1"
+  }
+}
