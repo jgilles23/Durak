@@ -639,7 +639,7 @@ class Game {
             let card = this.hand(player)[cardPosition];
             //Put the card in the field
             this.field(player).push(card);
-            //Remove from hand
+            //Remove from hand,
             this.hand(player).splice(cardPosition, 1);
             this.actions(player).splice(cardPosition, 1)
             //Update the game because of changes
@@ -654,7 +654,6 @@ class Game {
 let root = new Root(0.95, 0.95, "cl");
 let gamez = new Game(root)
 gamez.render()
-
 
 //ANCHOR Draw function
 function draw() {
