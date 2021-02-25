@@ -564,6 +564,11 @@ class Game {
         //Return the player whos turn it isnt
         return this.otherPlayer(this.activePlayer)
     }
+    valOf(card) { return rankToValue[card.charAt(0)] }
+    suitOf(card) {return card.charAt(1)}
+    get tsarSuit() {
+        return this.tsar.charAt(1)
+    }
     //ANCHOR Game update
     update() {
         /*Updates the game given the current state of the game
@@ -579,13 +584,30 @@ class Game {
         let hand = this.hand(this.activePlayer);
         let field = this.field(this.activePlayer);
         let actions = this.actions(this.activePlayer);
-        console.log(hand, field, actions) //STUB
         //Determine what action the active player needs to take
         if (this.activeAction == "defend") {
             //DEFEND
             //Acceptable defender actions
             for (let i = 0; i < hand.length; i++) {
-                actions.push(this.playFromHand(this.activePlayer, i))
+                //Prepare onClick function
+                let onClick = this.playFromHand(this.activePlayer, i)
+                //Test wich cards can be played, helper functions below
+                let card = hand[i];
+                let enemy = this.field(this.attacker).slice(-1)[0];
+                if (this.suitOf(card) == this.suitOf(enemy)) {
+                    //Same suit, value must be higher
+                    if (this.valOf(card) > this.valOf(enemy)) {
+                        actions.push(onClick);
+                    } else {
+                        actions.push(false);
+                    }
+                } else if (this.suitOf(card) == this.tsarSuit) {
+                    //Tsar suit can always be played
+                    actions.push(onClick);
+                } else {
+                    //Different suits cannot be played
+                    actions.push(false);
+                }
             }
         } else {
             //ATTACK
@@ -626,7 +648,6 @@ class Game {
         new TextBox(player1Box, 1, 0.2, opts, "Player 1") //"Player 1"
         //Setup play area 
         let playColumn = new Box(this.root, 0.75, 1, "tr");
-        console.log("this.actions0", this.actions0)
         new CardMatrix(playColumn, 0.7, 0.25, "tc", [this.hand0], undefined, [this.actions0]); //hand0
         new CardMatrix(playColumn, 1, 0.25, { align: "tc", offset_y: 0.25 }, [pad(this.field0, "00")], { clickable: false }); //field0
         new CardMatrix(playColumn, 1, 0.25, { align: "tc", offset_y: 0.5 }, [pad(this.field1, "00")], { clickable: false }); //field1
