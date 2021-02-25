@@ -287,22 +287,22 @@ class Button extends TextBox {
                 if (canvas.mouseDown) {
                     //Mouse Down
                     this.strokeColor = "red";
-                    this.textColor = "red";
+                    //this.textColor = "red";
                 }
                 else {
                     //Mouse Over
                     this.strokeColor = "purple";
-                    this.textColor = "purple";
+                    //this.textColor = "purple";
                 }
             } else {
                 //Clickable
                 this.strokeColor = "blue";
-                this.textColor = "blue";
+                //this.textColor = "blue";
             }
         } else {
             //Not Clickable
             this.strokeColor = "black";
-            this.textColor = "black";
+            //this.textColor = "black";
         }
         super.draw()
     }
@@ -565,9 +565,23 @@ class Game {
         return this.otherPlayer(this.activePlayer)
     }
     valOf(card) { return rankToValue[card.charAt(0)] }
-    suitOf(card) {return card.charAt(1)}
+    suitOf(card) { return card.charAt(1) }
     get tsarSuit() {
         return this.tsar.charAt(1)
+    }
+    nextAttacker() {
+        //Step to the next turn, discard the field
+        this.field0 = [];
+        this.field1 = [];
+        //Draw back up to 6 cards
+        for (let i = this.hand0.length; i < 6; i++) {
+            this.hand0.push(this.pick());
+        }
+        for (let i = this.hand1.length; i < 6; i++) {
+            this.hand1.push(this.pick());
+        }
+        //Change the active player
+        this.attacker = this.otherPlayer(this.attacker);
     }
     //ANCHOR Game update
     update() {
@@ -575,9 +589,13 @@ class Game {
         Updates include: avaliable actions, cleanup, gameOver
         Finally calls this.render()
         */
+        //Sort hands
+        this.sortHands()
         //Clear previous actions
         this.actions0 = [];
         this.actions1 = [];
+        this.pickup = [false, false]
+        this.endButton = [false, false];
         //No actions for inactive player
         this.hand(this.inactivePlayer).forEach(() => this.actions(this.inactivePlayer).push(false));
         //Define some useful variables
@@ -588,6 +606,7 @@ class Game {
         if (this.activeAction == "defend") {
             //DEFEND
             //Acceptable defender actions
+            this.pickup[this.activePlayer] = true; //Defender can always pick up
             for (let i = 0; i < hand.length; i++) {
                 //Prepare onClick function
                 let onClick = this.playFromHand(this.activePlayer, i)
@@ -611,15 +630,20 @@ class Game {
             }
         } else {
             //ATTACK
+            //STUB need checking for playable attacker cards
             //Attacker has all actions avaliable
             for (let i = 0; i < hand.length; i++) {
                 actions.push(this.playFromHand(this.activePlayer, i))
+                //Attacker can end attack after playing at least 1 card
+                if (field.length > 0) {
+                    this.endButton[this.attacker] = true;
+                }
             }
         }
         //Finally call this.render() to re-fresh the window
         this.render()
     }
-    //ANCHOR Game render/update
+    //ANCHOR Game render
     render() {
         /*Renders the game on the provided window of Root class
         */
@@ -646,12 +670,21 @@ class Game {
         new TextBox(deck, 1, 0.2, { align: "bc", offset_y: -1 }, "Deck")
         opts = this.activePlayer == 1 ? { align: "cc", textColor: "red" } : "cc" //Make active player red
         new TextBox(player1Box, 1, 0.2, opts, "Player 1") //"Player 1"
+        //Create button template
+        let actionButton = (offset_y, text, onClick) => { new Button(playColumn, 0.3, 0.055, { align: "cc", offset_y: offset_y, fillColor: "white" }, text, onClick) }
         //Setup play area 
         let playColumn = new Box(this.root, 0.75, 1, "tr");
+        //Hand0
         new CardMatrix(playColumn, 0.7, 0.25, "tc", [this.hand0], undefined, [this.actions0]); //hand0
+        if (this.pickup[0]) { actionButton(-0.25, "Pickup", this.pickupField(0)) } //pickup0
+        if (this.endButton[0]) { actionButton(-0.25, "End Attack", this.endAttack()) } //end0
+        //Fields
         new CardMatrix(playColumn, 1, 0.25, { align: "tc", offset_y: 0.25 }, [pad(this.field0, "00")], { clickable: false }); //field0
         new CardMatrix(playColumn, 1, 0.25, { align: "tc", offset_y: 0.5 }, [pad(this.field1, "00")], { clickable: false }); //field1
+        //Hand1
         new CardMatrix(playColumn, 1, 0.25, "bc", [this.hand1], undefined, [this.actions1]); //hand1
+        if (this.pickup[1]) { actionButton(0.25, "Pickup", this.pickupField(1)) } //pickup1
+        if (this.endButton[1]) { actionButton(0.25, "End Attack", this.endAttack()) } //end1
     }
     //ANCHOR Game onClick functions to apply to cards
     playFromHand(player, cardPosition) {
@@ -665,6 +698,25 @@ class Game {
             this.actions(player).splice(cardPosition, 1)
             //Update the game because of changes
             console.log("Played: " + card, this);
+            //Refresh
+            this.update();
+        }
+    }
+    pickupField(player) {
+        //Generates a funcation that when called picks up cards from the field and places in players hand
+        return () => {
+            this.field0.forEach(card => this.hand(player).push(card));
+            this.field1.forEach(card => this.hand(player).push(card));
+            this.field0 = [];
+            this.field1 = [];
+            //Refresh
+            this.update();
+        }
+    }
+    endAttack() {
+        //Generates a funciton that when called ends the attack for a player, field is discarded
+        return () => {
+            this.nextAttacker();
             //Refresh
             this.update();
         }
