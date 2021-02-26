@@ -498,21 +498,13 @@ class Game {
         this.deck.sort((a, b) => randNums[a] - randNums[b])
         //Draw tsar card
         this.tsar = this.pick();
-        //Draw hands
+        //Draw hands and sort
         this.hand0 = [];
-        //this.actions0 = [];
         this.hand1 = [];
-        //this.actions1 = [];
-        for (let i = 0; i < 6; i++) {
-            this.hand0.push(this.pick());
-            //this.actions0.push(this.playFromHand(0, i));
-            this.hand1.push(this.pick());
-            //this.actions1.push(this.playFromHand(1, i));
-        }
-        this.sortHands()
+        this.drawToSix(); //includes sort
         //Create the fields
-        this.field0 = []
-        this.field1 = []
+        this.field0 = [];
+        this.field1 = [];
         //Choose attacker
         this.attacker = 0;
         //Finally update -> render
@@ -535,6 +527,21 @@ class Game {
     pick() {
         //Draw a card
         return this.deck.pop()
+    }
+    drawToSix() {
+        ////Draw back up to 6 cards and sort the hand
+        for (let i = 0; i < 6; i++) {
+            //Attacker draws a card
+            if (this.hand(this.attacker).length < 6 && this.deck.length > 0) {
+                this.hand(this.attacker).push(this.pick())
+            }
+            //Then defender draws a card
+            if (this.hand(this.defender).length < 6 && this.deck.length > 0) {
+                this.hand(this.defender).push(this.pick())
+            }
+        }
+        //Sort hand
+        this.sortHands();
     }
     sortHands() {
         //Sort both hands in suit order
@@ -573,16 +580,56 @@ class Game {
         //Step to the next turn, discard the field
         this.field0 = [];
         this.field1 = [];
-        //Draw back up to 6 cards
-        for (let i = this.hand0.length; i < 6; i++) {
-            this.hand0.push(this.pick());
-        }
-        for (let i = this.hand1.length; i < 6; i++) {
-            this.hand1.push(this.pick());
-        }
         //Change the active player
         this.attacker = this.otherPlayer(this.attacker);
+        //Draw up to 6, sort
+        this.drawToSix();
     }
+    //ANCHOR Game onClick functions to apply to cards
+    playFromHand(player, cardPosition) {
+        //Generates a function, that when called plays a card from the players hand
+        return () => {
+            let card = this.hand(player)[cardPosition];
+            //Put the card in the field
+            this.field(player).push(card);
+            //Remove from hand,
+            this.hand(player).splice(cardPosition, 1);
+            this.actions(player).splice(cardPosition, 1)
+            //Update the game because of changes
+            //console.log("Played: " + card);
+            //Refresh
+            this.update();
+        }
+    }
+    pickupField(player) {
+        //Generates a funcation that when called picks up cards from the field and places in players hand
+        return () => {
+            this.field0.forEach(card => this.hand(player).push(card));
+            this.field1.forEach(card => this.hand(player).push(card));
+            this.field0 = [];
+            this.field1 = [];
+            //Draw to 6, sort
+            this.drawToSix();
+            //Refresh
+            this.update();
+        }
+    }
+    endAttack() {
+        //Generates a funciton that when called ends the attack for a player, field is discarded
+        return () => {
+            this.nextAttacker();
+            //Refresh
+            this.update();
+        }
+    }
+    newGame() {
+        return () => {
+            this.root.empty();
+            new Game(this.root);
+            //HALT this game
+        }
+    }
+
     //ANCHOR Game update
     update() {
         /*Updates the game given the current state of the game
@@ -594,15 +641,32 @@ class Game {
         //Clear previous actions
         this.actions0 = [];
         this.actions1 = [];
-        this.pickup = [false, false]
+        //Create visual flags
+        this.pickup = [false, false];
         this.endButton = [false, false];
+        this.winner = undefined;
+        //Check if the game is over
+        if (this.deck.length == 0) {
+            //Don't think there is a possibility of a tie, cards always discarded in pairs, odd number of cards once the tsar is excuded - kinda brillient
+            if (this.hand0.length == 0) { this.winner = 0 } //player0 wins
+            if (this.hand1.length == 0) { this.winner = 1 } //player1 wins
+            if (this.winner !== undefined) {
+                console.log("winner", this.winner)
+                //Everything becomes unclickable
+                this.hand0.forEach(() => this.actions0.push(false));
+                this.hand1.forEach(() => this.actions1.push(false));
+                //Render
+                this.render()
+                return //Do not continue update, render without buttons and not clickable
+            }
+        }
         //No actions for inactive player
         this.hand(this.inactivePlayer).forEach(() => this.actions(this.inactivePlayer).push(false));
         //Define some useful variables
         let hand = this.hand(this.activePlayer);
         let field = this.field(this.activePlayer);
         let actions = this.actions(this.activePlayer);
-        //Determine what action the active player needs to take
+        //Determine what action the active player can take
         if (this.activeAction == "defend") {
             //DEFEND
             //Acceptable defender actions
@@ -630,19 +694,38 @@ class Game {
             }
         } else {
             //ATTACK
-            //STUB need checking for playable attacker cards
             //Attacker has all actions avaliable
             for (let i = 0; i < hand.length; i++) {
-                actions.push(this.playFromHand(this.activePlayer, i))
-                //Attacker can end attack after playing at least 1 card
-                if (field.length > 0) {
-                    this.endButton[this.attacker] = true;
+                let card = hand[i];
+                if (field.length === 0) {
+                    //Can play any card a 1st card
+                    actions.push(this.playFromHand(this.activePlayer, i));
+                } else if (field.length >= 6) {
+                    //Cannot play card, field is full
+                    actions.push(false)
+                } else {
+                    //Check if the value matches an already played value
+                    let playedValues = new Set();
+                    this.field0.forEach(x => playedValues.add(this.valOf(x)))
+                    this.field1.forEach(x => playedValues.add(this.valOf(x)))
+                    if (playedValues.has(this.valOf(card))) {
+                        //Value has been played, playable
+                        actions.push(this.playFromHand(this.activePlayer, i));
+                    } else {
+                        //Cannot play, value does not match previously played value
+                        actions.push(false)
+                    }
                 }
+            }
+            //Attacker can end attack after playing at least 1 card
+            if (field.length > 0) {
+                this.endButton[this.attacker] = true;
             }
         }
         //Finally call this.render() to re-fresh the window
         this.render()
     }
+    //Check if the game is over 
     //ANCHOR Game render
     render() {
         /*Renders the game on the provided window of Root class
@@ -670,63 +753,33 @@ class Game {
         new TextBox(deck, 1, 0.2, { align: "bc", offset_y: -1 }, "Deck")
         opts = this.activePlayer == 1 ? { align: "cc", textColor: "red" } : "cc" //Make active player red
         new TextBox(player1Box, 1, 0.2, opts, "Player 1") //"Player 1"
-        //Create button template
+        //Button template
         let actionButton = (offset_y, text, onClick) => { new Button(playColumn, 0.3, 0.055, { align: "cc", offset_y: offset_y, fillColor: "white" }, text, onClick) }
         //Setup play area 
         let playColumn = new Box(this.root, 0.75, 1, "tr");
+        if (this.winner !== undefined) { actionButton(0, "Rematch", this.newGame()) }
         //Hand0
-        new CardMatrix(playColumn, 0.7, 0.25, "tc", [this.hand0], undefined, [this.actions0]); //hand0
+        console.log(cardWidth, playColumn.w)
+        let hand0Width = Math.min(1, this.hand0.length * deck.w / playColumn.w * 0.7);
+        let hand0 = new CardMatrix(playColumn, hand0Width, 0.25, "tc", [this.hand0], undefined, [this.actions0]); //hand0
         if (this.pickup[0]) { actionButton(-0.25, "Pickup", this.pickupField(0)) } //pickup0
         if (this.endButton[0]) { actionButton(-0.25, "End Attack", this.endAttack()) } //end0
-        //Fields
+        if (this.winner === 0) { new TextBox(hand0, 0.5, 0.3, "cc", "Player0 Wins") }
+        //Fields required
         new CardMatrix(playColumn, 1, 0.25, { align: "tc", offset_y: 0.25 }, [pad(this.field0, "00")], { clickable: false }); //field0
         new CardMatrix(playColumn, 1, 0.25, { align: "tc", offset_y: 0.5 }, [pad(this.field1, "00")], { clickable: false }); //field1
         //Hand1
-        new CardMatrix(playColumn, 1, 0.25, "bc", [this.hand1], undefined, [this.actions1]); //hand1
+        let hand1Width = Math.min(1, this.hand1.length * deck.w / playColumn.w * 0.7)
+        let hand1 = new CardMatrix(playColumn, hand1Width, 0.25, "bc", [this.hand1], undefined, [this.actions1]); //hand1
         if (this.pickup[1]) { actionButton(0.25, "Pickup", this.pickupField(1)) } //pickup1
         if (this.endButton[1]) { actionButton(0.25, "End Attack", this.endAttack()) } //end1
-    }
-    //ANCHOR Game onClick functions to apply to cards
-    playFromHand(player, cardPosition) {
-        //Generates a function, that when called plays a card from the players hand
-        return () => {
-            let card = this.hand(player)[cardPosition];
-            //Put the card in the field
-            this.field(player).push(card);
-            //Remove from hand,
-            this.hand(player).splice(cardPosition, 1);
-            this.actions(player).splice(cardPosition, 1)
-            //Update the game because of changes
-            console.log("Played: " + card, this);
-            //Refresh
-            this.update();
-        }
-    }
-    pickupField(player) {
-        //Generates a funcation that when called picks up cards from the field and places in players hand
-        return () => {
-            this.field0.forEach(card => this.hand(player).push(card));
-            this.field1.forEach(card => this.hand(player).push(card));
-            this.field0 = [];
-            this.field1 = [];
-            //Refresh
-            this.update();
-        }
-    }
-    endAttack() {
-        //Generates a funciton that when called ends the attack for a player, field is discarded
-        return () => {
-            this.nextAttacker();
-            //Refresh
-            this.update();
-        }
+        if (this.winner === 1) { new TextBox(hand1, 0.5, 0.3, "cc", "Player1 Wins") }
     }
 }
 
 //ANCHOR Assets
 let root = new Root(0.95, 0.95, "cl");
-let gamez = new Game(root)
-gamez.render()
+new Game(root)
 
 //ANCHOR Draw function
 function draw() {
