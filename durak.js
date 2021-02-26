@@ -203,6 +203,9 @@ class Root extends Box {
         options = updateOptions(options, defaults)
         super(undefined, w, h, options)
     }
+    render() {
+
+    }
     draw() {
         //Clear mouseFocus, and apply mouse focus
         this.clearMouseFocus();
@@ -469,6 +472,20 @@ function mouseUpHandler() {
     canvas.mouseDown = false;
     root.mouseUp(); //Handle the mouseup event
 }
+window.addEventListener("resize", resizeCanvas, false);
+function resizeCanvas() {
+    //re-size the canvas to correctly fit into the browser
+    let a = Math.min(window.innerWidth, window.innerHeight)
+    console.log("resizing")
+    canvas.width = a * 0.9;
+    canvas.height = a * 0.9;
+    //Re-draw everything //STUB this is a lazy way to do this, probably should re-program to be better later
+    let newRoot = new Root(0.95, 0.95, "cl");
+    for (let key in newRoot) {
+        root[key] = newRoot[key]
+    }
+    g.render()
+}
 
 //Game resorcess
 let allSuits = ["c", "d", "s", "h"]
@@ -495,7 +512,8 @@ class Game {
             randNums[x] = Math.random();
         });
         this.deck = allCards.map(x => x);
-        this.deck.sort((a, b) => randNums[a] - randNums[b])
+        this.deck.sort((a, b) => randNums[a] - randNums[b]);
+        this.deck = this.deck.slice(0, 5); //STUB
         //Draw tsar card
         this.tsar = this.pick();
         //Draw hands and sort
@@ -777,15 +795,18 @@ class Game {
     }
 }
 
-//ANCHOR Assets
-let root = new Root(0.95, 0.95, "cl");
-new Game(root)
-
 //ANCHOR Draw function
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     root.draw();
     requestAnimationFrame(draw);
 }
-//Run the script
+
+//ANCHOR Assets
+let a = Math.min(window.innerWidth, window.innerHeight)
+canvas.width = a * 0.9;
+canvas.height = a * 0.9;
+
+let root = new Root(0.95, 0.95, "cl");
+let g = new Game(root)
 draw();
