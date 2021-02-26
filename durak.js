@@ -4,6 +4,7 @@ let canvas = document.getElementById("myCanvas");
 let ctx = canvas.getContext("2d");
 let cardWidth = 0.115;
 let cardHeight = cardWidth / 0.7;
+let initialDeckSize = 36; //Default and max is 36
 
 //ANCHOR Options Handler
 function updateOptions(input, defaults, args) {
@@ -513,7 +514,7 @@ class Game {
         });
         this.deck = allCards.map(x => x);
         this.deck.sort((a, b) => randNums[a] - randNums[b]);
-        this.deck = this.deck.slice(0, 5); //STUB
+        this.deck = this.deck.slice(0,initialDeckSize)
         //Draw tsar card
         this.tsar = this.pick();
         //Draw hands and sort
