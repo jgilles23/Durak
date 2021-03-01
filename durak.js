@@ -167,6 +167,10 @@ class Box {
         //Recurse through children and draw them
         this.children.forEach(b => b.draw())
     }
+    //Remove everyhting in the call tree from the box (clears the objects)
+    empty() {
+        this.children = [];
+    }
     //Clear mouse focus
     clearMouseFocus() {
         this.mouseFocus = false;
@@ -203,10 +207,13 @@ class Root extends Box {
         }
         options = updateOptions(options, defaults)
         super(undefined, w, h, options)
+        //Setup event handlers
+        document.addEventListener("mousemove", this.mouseMoveHandler, false);
+        document.addEventListener("mousedown", this.mouseDownHandler, false);
+        document.addEventListener("mouseup", this.mouseUpHandler, false);
+        window.addEventListener("resize", this.resizeCanvas, false);
     }
-    render() {
-
-    }
+    //TODO Add a render function
     draw() {
         //Clear mouseFocus, and apply mouse focus
         this.clearMouseFocus();
@@ -214,8 +221,30 @@ class Root extends Box {
         //Call draw for the superclass
         super.draw()
     }
-    empty() {
-        this.children = [];
+    //Event handlers
+    mouseMoveHandler(e) {
+        canvas.mouse_x = e.pageX - canvas.offsetLeft;
+        canvas.mouse_y = e.pageY - canvas.offsetTop;
+    }
+    mouseDownHandler() {
+        canvas.mouseDown = true;
+    }
+    mouseUpHandler() {
+        canvas.mouseDown = false;
+        root.mouseUp(); //Handle the mouseup event
+    }
+    resizeCanvas() {
+        //re-size the canvas to correctly fit into the browser
+        let a = Math.min(window.innerWidth, window.innerHeight)
+        console.log("resizing")
+        canvas.width = a * 0.9;
+        canvas.height = a * 0.9;
+        //Re-draw everything //STUB this is a lazy way to do this, probably should re-program to be better later
+        let newRoot = new Root(0.95, 0.95, "cl");
+        for (let key in newRoot) {
+            root[key] = newRoot[key]
+        }
+        g.render()
     }
 }
 
@@ -459,34 +488,6 @@ class CardMatrix extends Box {
 }
 
 //ANCHOR Handlers
-document.addEventListener("mousemove", mouseMoveHandler, false);
-function mouseMoveHandler(e) {
-    canvas.mouse_x = e.pageX - canvas.offsetLeft;
-    canvas.mouse_y = e.pageY - canvas.offsetTop;
-}
-document.addEventListener("mousedown", mouseDownHandler, false);
-function mouseDownHandler() {
-    canvas.mouseDown = true;
-}
-document.addEventListener("mouseup", mouseUpHandler, false);
-function mouseUpHandler() {
-    canvas.mouseDown = false;
-    root.mouseUp(); //Handle the mouseup event
-}
-window.addEventListener("resize", resizeCanvas, false);
-function resizeCanvas() {
-    //re-size the canvas to correctly fit into the browser
-    let a = Math.min(window.innerWidth, window.innerHeight)
-    console.log("resizing")
-    canvas.width = a * 0.9;
-    canvas.height = a * 0.9;
-    //Re-draw everything //STUB this is a lazy way to do this, probably should re-program to be better later
-    let newRoot = new Root(0.95, 0.95, "cl");
-    for (let key in newRoot) {
-        root[key] = newRoot[key]
-    }
-    g.render()
-}
 
 //Game resorcess
 let allSuits = ["c", "d", "s", "h"]
