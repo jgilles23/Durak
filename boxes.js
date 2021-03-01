@@ -3,10 +3,6 @@ Module for drawing on the canvas in JavaScript
 Start with a Root() call to spin a Box in the canvas, all other boxes are derivative, rendered from, and drawn from the root
 */
 
-export function printSomething() {
-    console.log("Something Printed")
-}
-
 //ANCHOR Options Handler
 function updateOptions(input, defaults, args) {
     //Updates options for the following priority:
@@ -19,7 +15,7 @@ function updateOptions(input, defaults, args) {
             options[key] = input[key];
         }
     }
-    //overide with supers where supers are defined
+    //overide with input arguments where input arguments are defined
     if (args != undefined) {
         for (let key in args) {
             if (args[key] != undefined) {
@@ -47,6 +43,10 @@ export class Box {
                 wh_type = "[norm* (0.0 to 1.0 relative to parent), pixles, root (0.0 to 1.0 relative to root)]"} - modifies width and height
         */
         //Setup parameters
+        let args = {
+            input_w: w,
+            input_h: h,
+        }
         let defaults = {
             isRoot: false,
             align: "tl",
@@ -58,81 +58,23 @@ export class Box {
             children: [],
             mouseFocus: false, //only (1) box has true
             //Items that refer to parent (may need to be added to Root parentStandIn)
+            whContext: parent,
+            xyContext: parent,
             parent: parent,
             root: parent.root,
             ctx: parent.ctx,
             testing: parent.testing,
             strokeColor: parent.root.testing ? "red" : undefined,
         }
-        options = updateOptions(options, defaults);
+        options = updateOptions(options, defaults, args);
         //Copy the parameters to the class -- Happens in Box class only
         for (const key in options) {
             this[key] = options[key];
         }
         //Add to the tree by adding to parent children
         this.parent.children.push(this);
-        //Setup other parameters from hard typed inputes
-        this.input_w = w;
-        this.input_h = h;
-        this.children = [];
-        //Transfer options
-        if (options === undefined) { //If options not provided
-            options = "tl"
-        }
-        if (typeof options == "string") { //If options is align string
-            this.align = options;
-        } else { //Many options are provided and should be set
-            for (const key in options) {
-                this[key] = options[key]
-            }
-        }
-        //Choose the anchor for further calculations
-        let anchor;
-        if (this.isRoot) {
-            anchor = { x: 0, y: 0, w: this.canvas.width, h: this.canvas.height }
-        } else if (this.whType == "norm") {
-            anchor = this.parent
-        } else if (this.whType == "root") {
-            anchor = this.root
-        } else {
-            throw ".whType not valid: " + this.whType;
-        }
-        //Calcualte the width and height
-        this.w = anchor.w * w;
-        this.h = anchor.h * h;
-        //Choose new anchor for x and y position calculations
-        if (this.isRoot) {
-            anchor = { x: 0, y: 0, w: this.canvas.width, h: this.canvas.height }
-        } else if (this.xyType == "norm") {
-            anchor = this.parent;
-        } else if (this.xyType == "root") {
-            anchor = this.root;
-        } else {
-            throw ".xyType not valid: " + this.xyType;
-        }
-        //Calculate y position
-        if (this.align.charAt(0) == "t") {
-            this.y = anchor.y;
-        } else if (this.align.charAt(0) == "b") {
-            this.y = anchor.y + anchor.h - this.h;
-        } else if (this.align.charAt(0) == "c") {
-            this.y = anchor.y + anchor.h / 2 - this.h / 2;
-        } else {
-            throw ".align not valid: " + this.align;
-        }
-        //Calculate x position
-        if (this.align.charAt(1) == "l") {
-            this.x = anchor.x;
-        } else if (this.align.charAt(1) == "r") {
-            this.x = anchor.x + anchor.w - this.w;
-        } else if (this.align.charAt(1) == "c") {
-            this.x = anchor.x + anchor.w / 2 - this.w / 2;
-        } else {
-            throw ".align not valid: " + this.align;
-        }
-        //Add offsets if applicable
-        this.y += this.offset_y * anchor.h;
-        this.x += this.offset_x * anchor.w;
+        //Render the object
+        this.render()
     }
     //get methods for commonly used parameters
     get mid_x() { //center of x position
@@ -146,6 +88,42 @@ export class Box {
     }
     get bottom() { //bottom bound
         return this.y + this.h;
+    }
+    render() {
+        //Re-calculate sizes and positions
+        //console.log("rendering", this)
+        let [w, h] = [this.input_w, this.input_h]
+        //Calcualte the width and height
+        let con = this.whContext
+        this.w = con.w * w;
+        this.h = con.h * h;
+        //Get x, y of context
+       con = this.xyContext
+        //Calculate y position
+        if (this.align.charAt(0) == "t") {
+            this.y = con.y;
+        } else if (this.align.charAt(0) == "b") {
+            this.y = con.y + con.h - this.h;
+        } else if (this.align.charAt(0) == "c") {
+            this.y = con.y + con.h / 2 - this.h / 2;
+        } else {
+            throw ".align not valid: " + this.align;
+        }
+        //Calculate x position
+        if (this.align.charAt(1) == "l") {
+            this.x = con.x;
+        } else if (this.align.charAt(1) == "r") {
+            this.x = con.x + con.w - this.w;
+        } else if (this.align.charAt(1) == "c") {
+            this.x = con.x + con.w / 2 - this.w / 2;
+        } else {
+            throw ".align not valid: " + this.align;
+        }
+        //Add offsets if applicable
+        this.y += this.offset_y * con.h;
+        this.x += this.offset_x * con.w;
+        //Iterate through children and render children
+        this.children.forEach(b => b.render());
     }
     //Method to draw a box
     draw() {
@@ -200,34 +178,44 @@ export class Box {
 
 //ANCHOR Root Class
 export class Root extends Box {
-    constructor(canvas, w, h, options, game) {
+    constructor(canvas, w, h, options) {
         //Provide a canvas HTML object
         let defaults = {
             isRoot: true,
             canvas: canvas,
-            game: game, //TODO remove with lazy way
             testing: false, //Set to turn on/off testing boxes
         }
         options = updateOptions(options, defaults)
         //Create standin parent object to allow box construction
         let parentStandin = {
             //Leave most items as undefined
-            root: {}, //Empty object
             children: [],
             ctx: canvas.getContext("2d"),
+            x: 0,
+            y: 0,
+            w: canvas.width,
+            h: canvas.height,
         }
+        parentStandin.root = parentStandin;
         super(parentStandin, w, h, options)
-        //Overwrite Root parameters
-        this.parent = this;
-        this.root = this;
+        //Overwrite Root parameters for which parentStandin
+        for (let key in this) {
+            if (this[key] === parentStandin) {
+                this[key] = this;
+            }
+        }
+        this.isRoot = true;
         //Setup event handlers - Each handler is called because it returns a function
-        console.log("setup event listeners")
         document.addEventListener("mousemove", this.mouseMoveHandler(), false);
         document.addEventListener("mousedown", this.mouseDownHandler(), false);
         document.addEventListener("mouseup", this.mouseUpHandler(), false);
         window.addEventListener("resize", this.resizeCanvas(), false);
     }
-    //TODO Add a render function
+    render() {
+        this.w = this.canvas.width;
+        this.h = this.canvas.height;
+        super.render()
+    }
     draw() {
         //Clear mouseFocus, and apply mouse focus
         this.clearMouseFocus();
@@ -260,12 +248,8 @@ export class Root extends Box {
             console.log("resizing")
             this.canvas.width = a * 0.9;
             this.canvas.height = a * 0.9;
-            //Re-draw everything //TODO this is a lazy way to do this, probably should re-program to be better later
-            let newRoot = new Root(0.95, 0.95, "cl");
-            for (let key in newRoot) {
-                this[key] = newRoot[key]
-            }
-            this.game.render()
+            //Re-render to the new screen size
+            this.render();
         }
     }
 }
@@ -390,10 +374,10 @@ export class EmptyCard extends Button {
         */
         //Ensure that root has cardWidth and cardHeight defined
         if (parent.root.cardHeight === undefined || parent.root.cardWidth === undefined) {
-            throw "Card width or height not defined in Root. Please pass cardWidth and cardHeight as options when construting Root."
+            throw "Card width or height not defined in Root. Please pass cardWidth and cardHeight as options when constructing Root."
         }
         let defaults = {
-            whType: "root",
+            whContext: parent.root,
             fillColor: undefined,
             onClick: () => console.log("Clicked: EmptyCard"),
         }

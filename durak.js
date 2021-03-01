@@ -331,9 +331,7 @@ let a = Math.min(window.innerWidth, window.innerHeight)
 canvas.width = a * 0.9;
 canvas.height = a * 0.9;
 
-import {printSomething} from './boxes.js';
-printSomething()
-
 let root = new Root(canvas ,0.95, 0.95, {align:"cl",cardWidth:cardWidth,cardHeight:cardHeight, testing:testing});
-let g = new Game(root)
+let g = new Game(root);
+root.game = g;
 draw();
