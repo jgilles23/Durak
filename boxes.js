@@ -373,6 +373,7 @@ export class EmptyCard extends Button {
         Card sizing is absolute - defined in card size above
         */
         //Ensure that root has cardWidth and cardHeight defined
+
         if (parent.root.cardHeight === undefined || parent.root.cardWidth === undefined) {
             throw "Card width or height not defined in Root. Please pass cardWidth and cardHeight as options when constructing Root."
         }
@@ -385,6 +386,7 @@ export class EmptyCard extends Button {
         super(parent, parent.root.cardWidth, parent.root.cardHeight, options, "")
     }
 }
+
 
 //ANCHOR Card Class
 let suitLookup = { c: '\u2663', d: '\u2666', h: '\u2665', s: '\u2660' }

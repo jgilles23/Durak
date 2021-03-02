@@ -5,7 +5,7 @@ let canvas = document.getElementById("myCanvas");
 let ctx = canvas.getContext("2d");
 let cardWidth = 0.115;
 let cardHeight = cardWidth / 0.7;
-let initialDeckSize = 36; //Default and max is 36
+let initialDeckSize = 10; //Default and max is 36
 
 
 
@@ -302,7 +302,7 @@ class Game {
         if (this.winner !== undefined) { actionButton(0, "Rematch", this.newGame()) }
         //Hand0
         console.log("cardWidth, playColumn.w",cardWidth, playColumn.w)
-        let hand0Width = Math.min(1, this.hand0.length * deck.w / playColumn.w * 0.7);
+        let hand0Width = Math.min(1, (deck.w + deck.w * 0.6 * (this.hand0.length - 1)) / playColumn.w);
         let hand0 = new CardMatrix(playColumn, hand0Width, 0.25, "tc", [this.hand0], undefined, [this.actions0]); //hand0
         if (this.pickup[0]) { actionButton(-0.25, "Pickup", this.pickupField(0)) } //pickup0
         if (this.endButton[0]) { actionButton(-0.25, "End Attack", this.endAttack()) } //end0
@@ -311,7 +311,7 @@ class Game {
         new CardMatrix(playColumn, 1, 0.25, { align: "tc", offset_y: 0.25 }, [pad(this.field0, "00")], { clickable: false }); //field0
         new CardMatrix(playColumn, 1, 0.25, { align: "tc", offset_y: 0.5 }, [pad(this.field1, "00")], { clickable: false }); //field1
         //Hand1
-        let hand1Width = Math.min(1, this.hand1.length * deck.w / playColumn.w * 0.7)
+        let hand1Width = Math.min(1, (deck.w + deck.w * 0.6 * (this.hand1.length - 1)) / playColumn.w);
         let hand1 = new CardMatrix(playColumn, hand1Width, 0.25, "bc", [this.hand1], undefined, [this.actions1]); //hand1
         if (this.pickup[1]) { actionButton(0.25, "Pickup", this.pickupField(1)) } //pickup1
         if (this.endButton[1]) { actionButton(0.25, "End Attack", this.endAttack()) } //end1
@@ -330,6 +330,8 @@ function draw() {
 let a = Math.min(window.innerWidth, window.innerHeight)
 canvas.width = a * 0.9;
 canvas.height = a * 0.9;
+
+console.log(EmptyCard.test)
 
 let root = new Root(canvas ,0.95, 0.95, {align:"cl",cardWidth:cardWidth,cardHeight:cardHeight, testing:testing});
 let g = new Game(root);
