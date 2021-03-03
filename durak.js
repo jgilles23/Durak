@@ -30,7 +30,7 @@ class Game {
         */
         //Save the windows on which the game is to be rendered
         this.root = root;
-        //Create and sort the deck
+        //Create and randomize the deck
         let randNums = {}
         allCards.forEach(x => {
             randNums[x] = Math.random();
