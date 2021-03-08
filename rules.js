@@ -2,7 +2,7 @@
 Defines the durak state object and 
 */
 //Definitions
-let initialDeckSize = 36;
+let initialDeckSize = 10;
 
 //Create a set of the avaliable cards
 let allSuits = ["c", "d", "s", "h"]
@@ -23,20 +23,26 @@ export class State {
         this.makeDeck(); //this.deck = [...]
         this.hands = [[], []];
         this.fields = [[], []];
-        this.tsar = "";
+        this.tsar = this.deck.pop();
         this.attacker = 0;
-        this.activePlayer = 0;
         this.winner = undefined;
+        this.drawToSix(); //6 cards each player hand
         //Variables in which to store actions
         this.cardActions = [];
-        this.specialActionstion = [];
+        this.specialActions = [];
+        //Get the actions
+        this.getActions();
     }
     //Useful properties
-    otherPlayer(player) { player == 1 ? 0 : 1 }
+    otherPlayer(player) { return player == 1 ? 0 : 1 }
     get defender() { return this.otherPlayer(this.attacker) }
     get attackerHand() { return this.hands[this.attacker] }
     get defenderHand() { return this.hands[this.defender] }
-    get activePlayer() { return this.attackerHand.length > this.defenderHand.length ? this.defender : this.attacker }
+    get attackerField() { return this.fields[this.attacker] }
+    get defenderField() { return this.fields[this.defender] }
+    get activePlayer() {
+        return this.attackerField.length > this.defenderField.length ? this.defender : this.attacker
+    }
     get inactivePlayer() { return this.otherPlayer(this.activePlayer) }
     get activeHand() { return this.hands[this.activePlayer] }
     get activeField() { return this.fields[this.activePlayer] }
@@ -54,8 +60,9 @@ export class State {
     drawToSix() {
         //Each player draws to 6 cards
         for (let i = 0; i < 6; i++) {
-            //Attacker hand, then defender hand
-            [this.attackerHand, this.defenderHand].forEach(hand => {
+            //Attacker hand, then defender hand draw cards in order
+            let bothHands = [this.attackerHand, this.defenderHand];
+            bothHands.forEach(hand => {
                 if (hand.length < 6 && this.deck.length > 0) {
                     hand.push(this.deck.pop());
                 }
@@ -71,18 +78,29 @@ export class State {
     //Action actions
     playCard(card) {
         //Add card to the field, remove from hand
-        this.activeField.push(card);
         this.activeHand.splice(this.activeHand.indexOf(card), 1);
+        this.activeField.push(card);
+        this.getActions();
     }
     pickupField() {
         //Pickup the field and draw to 6 cards
         this.fields.forEach(field => field.forEach(card => this.activeHand.push(card)));
         this.fields = [[], []];
         this.drawToSix();
+        this.getActions();
     }
     endAttack() {
         //Next player is the attacker
+        this.fields = [[], []];
         this.attacker = this.defender;
+        this.drawToSix();
+        this.getActions();
+    }
+    newGame() {
+        let newState = new State()
+        for (let key in newState) {
+            this[key] = newState[key];
+        }
     }
     //Client actions to be called
     getActions() {
@@ -91,13 +109,16 @@ export class State {
         this.specialActions = [];
         //Check if game is over
         if (this.deck.length == 0) {
-            if (this.hand0.length == 0) { this.winner = 0 } //player0 wins
-            if (this.hand1.length == 0) { this.winner = 1 } //player1 wins
-            return //Do not continue, game over
+            if (this.hands[0].length == 0) { this.winner = 0 } //player0 wins
+            if (this.hands[1].length == 0) { this.winner = 1 } //player1 wins
+            if (this.winner != undefined) {
+                this.specialActions.push("Rematch")
+                return //Do not continue, game over
+            }
         }
         if (this.attacker == this.activePlayer) {
             //Attacker actions
-            if (this.attackerHand.length == 0) {
+            if (this.attackerField.length == 0) {
                 //All actions avaliable on first turn
                 this.cardActions = this.attackerHand;
                 return
@@ -128,5 +149,23 @@ export class State {
             })
         }
 
+    }
+    applyAction(text) {
+        //Apply the action indicated by the text
+        if (this.cardActions.includes(text)) {
+            //Play the card from the text
+            this.playCard(text);
+        } else if (this.specialActions.includes(text)) {
+            //Apply special actions
+            if (text == "Pickup") {
+                this.pickupField();
+            } else if (text == "End Attack") {
+                this.endAttack();
+            } else if (text == "Rematch") {
+                this.newGame();
+            }
+        } else {
+            throw "Attempted to play illegal action: " + text;
+        }
     }
 }
