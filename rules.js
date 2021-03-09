@@ -2,7 +2,7 @@
 Defines the durak state object and 
 */
 //Definitions
-let initialDeckSize = 10;
+let initialDeckSize = 36; //Normal game is 36 cards
 
 //Create a set of the avaliable cards
 let allSuits = ["c", "d", "s", "h"]
@@ -20,16 +20,19 @@ function suitOf(card) { return card.charAt(1) }
 export class State {
     constructor() {
         //State of Durak Game
+        this.deck = [];
         this.makeDeck(); //this.deck = [...]
         this.hands = [[], []];
         this.fields = [[], []];
         this.tsar = this.deck.pop();
-        this.attacker = 0;
+        this.attacker = Math.round(Math.random()); //Start with random player
         this.winner = undefined;
         this.drawToSix(); //6 cards each player hand
         //Variables in which to store actions
         this.cardActions = [];
         this.specialActions = [];
+        //Store the action number of the game
+        this.actionCount = 0;
         //Get the actions
         this.getActions();
     }
@@ -80,6 +83,7 @@ export class State {
         //Add card to the field, remove from hand
         this.activeHand.splice(this.activeHand.indexOf(card), 1);
         this.activeField.push(card);
+        this.actionCount += 1;
         this.getActions();
     }
     pickupField() {
@@ -87,6 +91,7 @@ export class State {
         this.fields.forEach(field => field.forEach(card => this.activeHand.push(card)));
         this.fields = [[], []];
         this.drawToSix();
+        this.actionCount += 1;
         this.getActions();
     }
     endAttack() {
@@ -94,9 +99,11 @@ export class State {
         this.fields = [[], []];
         this.attacker = this.defender;
         this.drawToSix();
+        this.actionCount += 1;
         this.getActions();
     }
     newGame() {
+        this.actionCount += 1;
         let newState = new State()
         for (let key in newState) {
             this[key] = newState[key];
@@ -167,5 +174,30 @@ export class State {
         } else {
             throw "Attempted to play illegal action: " + text;
         }
+    }
+    strip(player) {
+        //Strips all information and returns a stripped object for the indicated player, if player = undefined, will return informaiton for both players
+        this.sortHands();
+        let stripped = {
+            deck: [...this.deck],
+            hands: this.hands.map(hand => [...hand]),
+            fields: this.fields.map(field => [...field]),
+            tsar: this.tsar,
+            attacker: this.attacker,
+            activePlayer: this.activePlayer,
+            winner: this.winner,
+            cardActions: [...this.cardActions],
+            specialActions: [...this.specialActions],
+            actionCount: this.actionCount,
+        }
+        if (player != undefined) {
+            stripped.deck = this.deck.map(() => "0B");
+            stripped.hands[this.otherPlayer(player)] = this.hands[this.otherPlayer(player)].map(() => "0B");
+            if (player != this.activePlayer) {
+                stripped.cardActions = [];
+                //stripped.specialActions = [];
+            }
+        }
+        return stripped
     }
 }

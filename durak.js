@@ -1,11 +1,17 @@
 //ANCHOR Definitions
-import { Box, Root, TextBox, Button, EmptyCard, Card, CardMatrix } from './boxes.js'
-import { State } from './rules.js'
+import { Box, Root, TextBox, Button, EmptyCard, Card, CardMatrix } from './boxes.js';
+//import { State } from './rules.js';
+import { Server } from './server.js';
 let testing = false;
 let canvas = document.getElementById("myCanvas");
 let ctx = canvas.getContext("2d");
 let cardWidth = 0.115;
 let cardHeight = cardWidth / 0.7;
+
+function sleep(ms) {
+    //Sleep function, input in miliseconds
+    return new Promise(resolve => setTimeout(resolve, ms))
+}
 
 //Game resorcess
 let allSuits = ["c", "d", "s", "h"]
@@ -21,7 +27,8 @@ for (let i = 0; i < allSuits.length; i++) {
 export class Client {
     constructor(root) {
         //Client for playing durak game
-        this.state = new State(); //Create new game of durak
+        this.server = new Server()
+        this.state = this.server.getState(1); //Create new game of durak
         this.root = root; //Store root window
     }
     render() {
@@ -61,16 +68,17 @@ export class Client {
         new TextBox(deck, 0.5, 0.5, "cc", this.state.deck.length)
         let tsar = new Card(deckColumn, { align: "cc", offset_y: -0.125, clickable: false }, this.state.tsar)
         opts = this.state.activePlayer == 0 ? { align: "cc", textColor: "red" } : "cc" //Make active player red
-        new TextBox(player0Box, 1, 0.2, opts, "Player 0") //"Player 0"
+        new TextBox(player0Box, 1, 0.2, opts, "Computer") //"Player 0"
         new TextBox(tsar, 1, 0.2, { align: "bc", offset_y: -1 }, "Tsar")
         new TextBox(deck, 1, 0.2, { align: "bc", offset_y: -1 }, "Deck")
-        opts = this.activePlayer == 1 ? { align: "cc", textColor: "red" } : "cc" //Make active player red
-        new TextBox(player1Box, 1, 0.2, opts, "Player 1") //"Player 1"
+        opts = this.state.activePlayer == 1 ? { align: "cc", textColor: "red" } : "cc" //Make active player red
+        new TextBox(player1Box, 1, 0.2, opts, "Human") //"Player 1"
         //
         //Setup play area 
         let playColumn = new Box(this.root, 0.75, 1, "tr");
         if (this.state.specialActions.includes("Rematch")) {
-            actionButton(0, "Rematch", this.reportFactory("Rematch"))
+            new TextBox(playColumn,1,0.2,"cc","Refresh the page for a rematch.")
+            //actionButton(0, "Rematch", this.reportFactory("Rematch"))
         }
         //Setup each players hand and field
         for (let player = 0; player < 2; player++) {
@@ -91,17 +99,23 @@ export class Client {
             let handBox = new CardMatrix(playColumn, handWidth, 0.25, { align: "tc", offset_y: handOffset }, [hand], undefined, [actions]); //hand0
             //Display the player field
             new CardMatrix(playColumn, 1, 0.25, { align: "tc", offset_y: fieldOffset }, [pad(field, "00")], { clickable: false });
+            let buttonAction;
+            if (player === 1) {
+                buttonAction = (text) => this.reportFactory(text);
+            } else {
+                buttonAction = () => false;
+            }
             if (player == this.state.activePlayer) {
                 //Show other buttons
                 if (this.state.specialActions.includes("Pickup")) {
-                    actionButton(buttonOffset, "Pickup", this.reportFactory("Pickup"))
+                    actionButton(buttonOffset, "Pickup", buttonAction("Pickup"))
                 }
                 if (this.state.specialActions.includes("End Attack")) {
-                    actionButton(buttonOffset, "End Attack", this.reportFactory("End Attack"))
+                    actionButton(buttonOffset, "End Attack", buttonAction("End Attack"))
                 }
-                if (this.winner === player) {
-                    new TextBox(handBox, 0.5, 0.3, "cc", `Player${player} Wins`)
-                }
+            }
+            if (this.state.winner === player) {
+                new TextBox(handBox, 0.5, 0.3, "cc", `This Player Wins!`)
             }
 
         }
@@ -111,10 +125,22 @@ export class Client {
         return () => this.report(text)
     }
     report(text) {
-        console.log("Pressed:", text);
-        this.state.applyAction(text);
+        //Send action to the server
+        this.server.applyAction(text);
+        this.state = this.server.getState(1);
         this.render();
-        console.log(this.state); //STUB
+        //Wait until opponent has played, then render
+        this.renderOnMyTurn();
+    }
+    async renderOnMyTurn() {
+        //Wait until the server reports my turn, then render
+        let state = this.server.getState(1);
+        while (state.activePlayer !== 1) {
+            await sleep(100);
+            state = this.server.getState(1);
+        }
+        this.state = state;
+        this.render()
     }
 }
 
@@ -133,7 +159,6 @@ canvas.height = a * 0.9;
 let root = new Root(canvas, 0.95, 0.95, { align: "cl", cardWidth: cardWidth, cardHeight: cardHeight, testing: testing });
 let client = new Client(root);
 client.render();
-console.log(client)
-console.log(client.state)
+client.renderOnMyTurn();
 draw();
 

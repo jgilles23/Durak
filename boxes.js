@@ -98,7 +98,7 @@ export class Box {
         this.w = con.w * w;
         this.h = con.h * h;
         //Get x, y of context
-       con = this.xyContext
+        con = this.xyContext
         //Calculate y position
         if (this.align.charAt(0) == "t") {
             this.y = con.y;
@@ -130,6 +130,7 @@ export class Box {
         //Draw this box
         if (this.strokeColor != undefined || this.fillColor != undefined) {
             this.ctx.beginPath();
+            this.ctx.lineWidth = 2.0;
             this.ctx.rect(this.x, this.y, this.w, this.h);
             if (this.fillColor != undefined) {
                 this.ctx.fillStyle = this.fillColor;
@@ -489,6 +490,11 @@ export class CardMatrix extends Box {
                     cDefaults.clickable = false;
                     cOptions = updateOptions(cOptions, cDefaults)
                     new EmptyCard(this, cOptions, cOnClick);
+                } else if (cardName == "0B") {
+                    cDefaults.clickable = false;
+                    cDefaults.faceup = false;
+                    cOptions = updateOptions(cOptions, cDefaults)
+                    new Card(this,cOptions, cardName, cOnClick);
                 } else {
                     cDefaults.clickable = true;
                     cOptions = updateOptions(cOptions, cDefaults)
