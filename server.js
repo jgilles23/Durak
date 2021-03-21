@@ -1,12 +1,12 @@
 import {State} from './rules.js'
-import {RandomAI} from './ai.js'
+import {RandomAI, HeuristicAI} from './ai.js'
 
 export class Server {
     constructor() {
         //Server for hosting the game of durak
         console.log("NEW GAME")
         this.state = new State();
-        this.ai = new RandomAI();
+        this.ai = new HeuristicAI(500);
         //If the AI starts, play AI action
         if (this.state.activePlayer == 0) {
             this.applyAIAction();
