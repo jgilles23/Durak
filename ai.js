@@ -23,12 +23,16 @@ class AI {
     constructor(minTime) {
         //Main constructor the the AI class
         //minTime - miliseconds minimum time that the response from the AI should take, if undefined, no delay is used
+        this.arguments = arguments;
         this.minTime = minTime || 0;
         this.opponentHand = new Set();
         this.previousState = undefined;
     }
     async selectAction(state) {
         //Calls the subclass mySelectAction, a required function for subcalsses
+        if (state.specialActions.includes("Rematch")) {
+            throw "AI cannot take the rematch action." //TODO
+        }
         //Convert state to a full state object
         state = new State(state)
         //Track the previous action
@@ -88,17 +92,16 @@ class AI {
         //Sort hand to ensure state is expected
         state.sortHands();
     }
-    //Mathod for copying the AI
-    //STUB
+    //Method for copying the AI with the same arguments
+    copy() {
+        return new this.constructor(...this.arguments)
+    }
 }
 
 export class RandomAI extends AI {
     //Function for this AI to select an action. Returns the action in text.
     async mySelectAction(state) {
         //Method for AI to select the action to use
-        if (state.specialActions.includes("Rematch")) {
-            throw "AI cannot take the rematch action." //TODO
-        }
         let options = state.cardActions.concat(state.specialActions);
         let i = randInt(0, options.length);
         let aiAction = options[i]
@@ -114,6 +117,14 @@ export class HeuristicAI extends AI {
     - with deck: defend with lowest non-tsar card; attack with lowest non-tsar card
     - empty deck: prefer above, then use tsar-cards
     */
+    constructor(minTime, deckCutoff) {
+        /*Inputs:
+            - minTime - miliseconds
+            - deckCutoff - cards in the deck before switching to mode where tsar suit may be played
+        */
+        super(...arguments);
+        this.deckCutoff = deckCutoff || 0;
+    }
     async mySelectAction(state) {
         //Chosse AI actions
         //Function to score cards, non-tsar scores (106-114), tsar scores (306-314)
@@ -136,7 +147,7 @@ export class HeuristicAI extends AI {
             }
         })
         //If early game, prefer special actions, late-game prefer tsar cards
-        if (state.deck.length > 0 && state.specialActions.length > 0) {
+        if (state.deck.length > this.deckCutoff && state.specialActions.length > 0) {
             //Early game
             if (lowScore > 200) {
                 lowAction = state.specialActions[0];

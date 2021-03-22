@@ -34,13 +34,13 @@ async function hostGame(players, verbose) {
     return state.winner;
 }
 
-async function battle(playerClasses, iterations) {
+async function battle(players, iterations) {
     //Input classes callable with new Class()
     //iterations defines the number of games to host
     let games = [];
     for (let i = 0; i < iterations; i++) {
-        let players = playerClasses.map(x => new x());
-        games.push(hostGame(players, false))
+        let playerCopies = players.map(x => x.copy());
+        games.push(hostGame(playerCopies, false))
     }
     let winners = await Promise.all(games);
     //Count the outcomes of the games - winner 0,1,undefined
@@ -51,6 +51,6 @@ async function battle(playerClasses, iterations) {
     console.log(results)
 }
 
-battle([RandomAI, HeuristicAI], 10);
+battle([new HeuristicAI(0,36), new HeuristicAI(0,0)], 100);
 //hostGame([new RandomAI(),new EndgameAI()], true)
 new RandomAI(0,"Pants","Shoes")
