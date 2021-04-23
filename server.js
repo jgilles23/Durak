@@ -45,6 +45,7 @@ export class NetServer extends Server {
         //Save this
         let self = this;
         //Server applicaiton
+        const PORT = process.env.PORT || 5000;
         let app = express();
         //Middleware function for logging server requests
         let middleware_logger = function(req, res, next) {
@@ -79,8 +80,8 @@ export class NetServer extends Server {
             res.send(JSON.stringify(true))
         })
         //Listen to port
-        app.listen(3000, () => {
-            console.log("NetServer is listening on port 3000")
+        app.listen(PORT, () => {
+            console.log(`NetServer is listening on port ${PORT}`)
         })
     }
 }
