@@ -7,11 +7,11 @@ import express from 'express';
 import fetch from 'node-fetch';
 
 export class Server {
-    constructor() {
+    constructor(verbose) {
         //Server for hosting the game of durak
         console.log("NEW GAME")
         this.state = new State();
-        this.ai = new HeuristicAI(500);
+        this.ai = new HeuristicAI(undefined); //Place the time for server to take an action here 
         //If the AI starts, play AI action
         if (this.state.activePlayer == 0) {
             this.applyAIAction();
@@ -19,6 +19,7 @@ export class Server {
     }
     getState(player) {
         //Get the state of the board for what a particular player can see, player=undefined to return all information
+        if (player==="undefined") {player = undefined}
         return this.state.strip(player);
     }
     applyAction(text) {
@@ -41,6 +42,8 @@ export class Server {
 export class NetServer extends Server {
     constructor() {
         super();
+        //Save this
+        let self = this;
         //Server applicaiton
         let app = express();
         //Middleware function for logging server requests
@@ -54,20 +57,26 @@ export class NetServer extends Server {
         //Get method
         app.get('/game', function(req,res) {
             //Requires a player query to be provided
-            console.log(`In /game GET: ${req.query}`)
-            let x = this.getState(req.query.player);
+            console.log(`In /game GET: ${JSON.stringify(req.query)}`)
+            let x = self.getState(req.query.player); //self is NetServer
             res.send(JSON.stringify(x))
         })
         //Post method
         app.post('/game', function(req,res) {
             //Requires player and action to be provided
             //TODO Ignoring body for now because it seems difficult
-            console.log(`In /game POST: ${req.query}`);
+            console.log(`In /game POST: ${JSON.stringify(req.query)}`);
             console.log(`body: ${req.body}`);
-            this.applyAction(req.query.action);
+            self.applyAction(req.query.action); //self is NetServer
             //Return state after application of action
-            let x = this.getState(req.query.player);
+            let x = self.getState(req.query.player);
             res.send(JSON.stringify(x));
+        })
+        //Test method
+        app.get('/test', function(re,res) {
+            //Method for testing if the connection works
+            console.log('In /test GET: connection successful');
+            res.send(JSON.stringify(true))
         })
         //Listen to port
         app.listen(3000, () => {
@@ -87,7 +96,7 @@ export class NetPortal {
             const response = await fetch(endpoint);
             if (response.ok) {
                 const jsonResponse = await response.json();
-                console.log(jsonResponse)
+                //console.log('jsonResponse',jsonResponse)
                 return jsonResponse
             }
             throw new Error('Did not reach endpoint.');
@@ -97,7 +106,7 @@ export class NetPortal {
     }
     async applyAction(player,action) {
         //Function used as a portal to get the state of internet games
-        const endpoint = `${url}?player=${player}&action=${action}`
+        const endpoint = `${this.url}?player=${player}&action=${action}`
         try {
             const response = await fetch(endpoint, {
                 method: 'POST',
@@ -108,7 +117,7 @@ export class NetPortal {
             });
             if (response.ok) {
                 const jsonResponse = await response.json();
-                console.log(jsonResponse)
+                //console.log('jsonResponse',jsonResponse)
                 return jsonResponse
             }
             throw new Error('Did not reach endpoint.');

@@ -59,7 +59,7 @@ class AI {
                 //Remove played cards from tracked opponent hand
                 this.opponentHand.delete(state.lastAction);
             }
-        } else if (state.lastAction == "Pickup") {
+        } else if (state.lastAction == "Pickup" && this.previousState) {
             //Add picked up cards to opponent hand
             this.previousState.fields.forEach(field => {
                 field.forEach(card => {
