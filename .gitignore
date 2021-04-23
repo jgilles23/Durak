@@ -107,3 +107,9 @@ dist
 package.json
 package-lock.json
 .eslintrc.js
+
+#recommended by heroku
+/node_modules
+npm-debug.log
+.DS_Store
+/*.env
