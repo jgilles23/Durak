@@ -104,8 +104,6 @@ dist
 .tern-port
 
 #More files
-package.json
-package-lock.json
 .eslintrc.js
 
 #recommended by heroku
