@@ -266,6 +266,7 @@ export class TextBox extends Box {
             strokeColor: parent.testing ? "pink" : undefined,
             textColor: "black",
             font: "16px Arial",
+            textAlign: "cc"
         }
         options = updateOptions(options, defaults);
         super(parent, w, h, options);
@@ -277,23 +278,23 @@ export class TextBox extends Box {
         this.ctx.font = this.font;
         this.ctx.fillStyle = this.textColor;
         let x, y
-        if (this.align.charAt(0) == "t") {
+        if (this.textAlign.charAt(0) == "t") {
             this.ctx.textBaseline = "top";
             y = this.y;
-        } else if (this.align.charAt(0) == "b") {
+        } else if (this.textAlign.charAt(0) == "b") {
             this.ctx.textBaseline = "bottom";
             y = this.bottom;
-        } else if (this.align.charAt(0) == "c") {
+        } else if (this.textAlign.charAt(0) == "c") {
             this.ctx.textBaseline = "middle";
             y = this.mid_y;
         }
-        if (this.align.charAt(1) == "l") {
+        if (this.textAlign.charAt(1) == "l") {
             this.ctx.textAlign = "left";
             x = this.x;
-        } else if (this.align.charAt(1) == "r") {
+        } else if (this.textAlign.charAt(1) == "r") {
             this.ctx.textAlign = "right";
             x = this.right;
-        } else if (this.align.charAt(1) == "c") {
+        } else if (this.textAlign.charAt(1) == "c") {
             this.ctx.textAlign = "center";
             x = this.mid_x;
         }
@@ -410,7 +411,7 @@ export class Card extends EmptyCard {
         this.suitString = suitLookup[this.suit];
         //Setup the text box on the card
         let subTextColor = (this.suit == "c" || this.suit == "s") ? "black" : "red"
-        new TextBox(this, 0.8, 0.2, { align: "tl", offset_x: 0.1, offset_y: 0.1, textColor: subTextColor }, `${this.rank}${this.suitString}`)
+        new TextBox(this, 0.8, 0.2, { align: "tl", offset_x: 0.1, offset_y: 0.08, textColor: subTextColor, textAlign: "tl" }, `${this.rank}${this.suitString}`)
     }
     draw() {
         if (this.faceup) {
@@ -494,7 +495,7 @@ export class CardMatrix extends Box {
                     cDefaults.clickable = false;
                     cDefaults.faceup = false;
                     cOptions = updateOptions(cOptions, cDefaults)
-                    new Card(this,cOptions, cardName, cOnClick);
+                    new Card(this, cOptions, cardName, cOnClick);
                 } else {
                     cDefaults.clickable = true;
                     cOptions = updateOptions(cOptions, cDefaults)

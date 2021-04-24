@@ -1,10 +1,20 @@
+//Test if running on node.js and respond with imports as needed
+try {
+    const express = await import('express')
+    const fetch = await import('node-fetch')
+    console.log(`Server module running on ${process.release.name}`);
+    
+} catch (error) {
+    console.log(`Server module NOT running on node`)
+}
+
 import { State } from './rules.js';
 import { RandomAI, HeuristicAI } from './ai.js';
 //const express = require('express');
-import express from 'express';
+//import express from 'express';
 //const querystring = require('querystring');
 //const fetch = require("node-fetch");
-import fetch from 'node-fetch';
+//import fetch from 'node-fetch';
 
 export class Server {
     constructor(verbose) {
@@ -88,11 +98,12 @@ export class NetServer extends Server {
 
 export class NetPortal {
     constructor() {
-        this.url = 'http://localhost:3000/game'
+        this.url = 'https://thawing-ravine-11785.herokuapp.com/game'
     }
     async getState(player) {
         //Function used as a portal to get the state of internet games
         const endpoint = `${this.url}?player=${player}`
+        //console.log('Endpoint',endpoint)
         try {
             const response = await fetch(endpoint);
             if (response.ok) {

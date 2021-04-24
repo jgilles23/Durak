@@ -1,7 +1,7 @@
 //ANCHOR Definitions
 import { Box, Root, TextBox, Button, EmptyCard, Card, CardMatrix } from './boxes.js';
 //import { State } from './rules.js';
-import { Server } from './server.js';
+import { Server, NetPortal } from './server.js';
 let testing = false;
 let canvas = document.getElementById("myCanvas");
 let ctx = canvas.getContext("2d");
@@ -25,9 +25,9 @@ for (let i = 0; i < allSuits.length; i++) {
 
 //Human client
 export class Client {
-    constructor(root) {
+    constructor(root, server) {
         //Client for playing durak game
-        this.server = new Server()
+        this.server = server;
         this.state = this.server.getState(1); //Create new game of durak
         this.root = root; //Store root window
     }
@@ -77,7 +77,7 @@ export class Client {
         //Setup play area 
         let playColumn = new Box(this.root, 0.75, 1, "tr");
         if (this.state.specialActions.includes("Rematch")) {
-            new TextBox(playColumn,1,0.2,"cc","Refresh the page for a rematch.")
+            new TextBox(playColumn, 1, 0.2, "cc", "Refresh the page for a rematch.")
             //actionButton(0, "Rematch", this.reportFactory("Rematch"))
         }
         //Setup each players hand and field
@@ -132,11 +132,11 @@ export class Client {
         //Wait until opponent has played, then render
         this.renderOnMyTurn();
     }
-    async renderOnMyTurn() {
+    async renderOnMyTurn(pingDelay) {
         //Wait until the server reports my turn, then render
         let state = this.server.getState(1);
         while (state.activePlayer !== 1) {
-            await sleep(100);
+            await sleep(pingDelay);
             state = this.server.getState(1);
         }
         this.state = state;
@@ -144,21 +144,55 @@ export class Client {
     }
 }
 
-//ANCHOR Draw function
+class MainMenu {
+    constructor(root) {
+        //Main maenu for Durak game
+        this.root = root;
+    }
+    render() {
+        //helper function for creating a client
+        const gameCreator = (server, pingDelay) => {
+            //Starts a new game of durak
+            let client = new Client(root, server);
+            client.render();
+            client.renderOnMyTurn(pingDelay);
+        }
+        //Render the menu on the root
+        this.root.empty();
+        let w = 0.4;
+        let h = 0.07;
+        new TextBox(this.root, w, h, { align: "tc", offset_y: 0.5 * h }, "Welcome to Durak")
+        new TextBox(this.root, w, h, { align: "tc", offset_y: 2 * h }, "Choose Game Type")
+        new Button(this.root, w, h, { align: "tc", offset_y: 3 * h }, "Easy Computer", () => { gameCreator(new Server(), 100) })
+        new Button(this.root, w, h, { align: "tc", offset_y: 4.5 * h }, "Medium Computer", () => { gameCreator(new Server(), 100) })
+        new Button(this.root, w, h, { align: "tc", offset_y: 6 * h }, "Online as Player 0", () => { gameCreator(new NetPortal(), 1000) })
+        new Button(this.root, w, h, { align: "tc", offset_y: 7.5 * h }, "Online as Player 1", () => { gameCreator(new NetPortal(), 1000) })
+    }
+}
+
+//Draw function - called over and over
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     root.draw();
     requestAnimationFrame(draw);
 }
 
-//ANCHOR Assets
+//Setup canvas
 let a = Math.min(window.innerWidth, window.innerHeight)
 canvas.width = a * 0.9;
 canvas.height = a * 0.9;
+//Setup the root on the canvas
+let root = new Root(canvas, 1, 1, { align: "tl", cardWidth: cardWidth, cardHeight: cardHeight, testing: testing });
 
-let root = new Root(canvas, 0.95, 0.95, { align: "cl", cardWidth: cardWidth, cardHeight: cardHeight, testing: testing });
-let client = new Client(root);
-client.render();
-client.renderOnMyTurn();
+/*
+//Prepare and render the main menu
+let mainMenu = new MainMenu(root);
+mainMenu.render();
+
+//Call draw function -- contant calls
 draw();
+*/
 
+let portal = new NetPortal();
+let returned = await portal.getState(undefined);
+console.log(returned)
