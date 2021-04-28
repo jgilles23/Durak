@@ -78,9 +78,9 @@ export class Client {
         //
         //Setup play area 
         let playColumn = new Box(this.root, 0.70, 1, { align: "tl", offset_x: 0.25 });
-        if (this.state.specialActions.includes("Rematch")) {
-            new TextBox(playColumn, 1, 0.2, "cc", "Refresh the page for a rematch.")
-            //actionButton(0, "Rematch", this.reportFactory("Rematch"))
+        if (this.state.metaActions.includes("Meta Rematch")) {
+            //new TextBox(playColumn, 1, 0.2, "cc", "Refresh the page for a rematch.")
+            actionButton(0, "Rematch", this.reportFactory("Meta Rematch"))
         }
         //Setup each players hand and field
         for (let player = 0; player < 2; player++) {

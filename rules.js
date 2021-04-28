@@ -2,7 +2,7 @@
 Defines the durak state object and 
 */
 //Definitions
-let initialDeckSize = 36; //Normal game is 36 cards
+let initialDeckSize = 6; //Normal game is 36 cards
 
 //Create a set of the avaliable cards
 let allSuits = ["c", "d", "s", "h"]
@@ -28,6 +28,7 @@ function copy_A_to_B(A, B) {
     B.winner = A.winner;
     B.cardActions = [...A.cardActions];
     B.specialActions = [...A.specialActions];
+    B.metaActions = [...A.metaActions];
     B.actionCount = A.actionCount;
     B.lastAction = A.lastAction;
     //Does not return a B is modified in place
@@ -54,6 +55,7 @@ export class State {
             //Variables in which to store actions
             this.cardActions = [];
             this.specialActions = [];
+            this.metaActions = [];
             //Store the action number of the game
             this.actionCount = 0;
             this.lastAction = undefined;
@@ -148,7 +150,7 @@ export class State {
             if (this.hands[0].length == 0) { this.winner = 0 } //player0 wins
             if (this.hands[1].length == 0) { this.winner = 1 } //player1 wins
             if (this.winner != undefined) {
-                this.specialActions.push("Rematch")
+                this.metaActions.push("Meta Rematch")
                 return //Do not continue, game over
             }
         }
@@ -197,9 +199,9 @@ export class State {
                 this.pickupField();
             } else if (text == "End Attack") {
                 this.endAttack();
-            } else if (text == "Rematch") {
+            } /*else if (text == "Rematch") {
                 this.newGame();
-            }
+            }*/
         } else {
             throw "Attempted to play illegal action: " + text;
         }
