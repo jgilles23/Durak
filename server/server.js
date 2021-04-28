@@ -23,7 +23,7 @@ export class Server {
         if (player==="undefined") {player = undefined}
         return this.state.strip(player);
     }
-    applyAction(text) {
+    applyAction(player,text) {
         //Apply an action that is given to the server
         //Play the human action
         console.log("Human Action:", text);
