@@ -3,8 +3,8 @@ Portal for reaching the NetServer module for netserver
 If running in node.js environment need to use the portal-node.js file instead
 */
 
-let game_url = 'http://localhost:5000/game';
-//let game_url = 'https://thawing-ravine-11785.herokuapp.com/game';
+//let game_url = 'http://localhost:5000/game';
+let game_url = 'https://thawing-ravine-11785.herokuapp.com/game';
 
 export class Portal {
     constructor() {
