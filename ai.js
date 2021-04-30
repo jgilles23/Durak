@@ -31,7 +31,7 @@ class AI {
     async selectAction(state) {
         //Calls the subclass mySelectAction, a required function for subcalsses
         if (state.specialActions.includes("Rematch")) {
-            throw "AI cannot take the rematch action." //TODO
+            throw "AI: Cannot take the rematch action." //TODO
         }
         //Convert state to a full state object
         state = new State(state)
@@ -42,6 +42,7 @@ class AI {
             this.investigate(state); //modifies state in place
         }
         //finally perform actions - use promises to set minimum time
+        console.log(`AI: Thinking for minimum ${this.minTime}ms`)
         let [action, _] = await Promise.all([this.mySelectAction(state)], await sleep(this.minTime))
         //apply the action to my copy of the state and save the previous state
         state.applyAction(action);
@@ -50,7 +51,7 @@ class AI {
     }
     mySelectAction(state) {
         //mySelectAction myst be implemented by sub classes
-        throw "mySelectAction not implemented by AI subclass."
+        throw "AI: mySelectAction not implemented by AI subclass."
     }
     track(state) {
         //Track opponents hand to the best of the ai's ability, using the most recent actions

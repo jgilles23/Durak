@@ -2,7 +2,7 @@
 Defines the durak state object and 
 */
 //Definitions
-let initialDeckSize = 6; //Normal game is 36 cards
+let initialDeckSize = 36; //Normal game is 36 cards
 
 //Create a set of the avaliable cards
 let allSuits = ["c", "d", "s", "h"]

@@ -33,7 +33,7 @@ export class NetServer extends Server {
             //TODO Ignoring body for now because it seems difficult
             console.log(`In /game POST: ${JSON.stringify(req.query)}`);
             //console.log(`body: ${req.body}`);
-            self.applyAction(req.query.action); //self is NetServer
+            self.applyAction(req.query.player, req.query.action); //self is NetServer
             //Return state after application of action
             let x = self.getState(req.query.player);
             res.send(JSON.stringify(x));

@@ -3,12 +3,14 @@ import { Box, Root, TextBox, Button, EmptyCard, Card, CardMatrix } from './boxes
 //import { State } from './rules.js';
 import { Portal } from './server/portal.js';
 import { Server } from './server/server.js';
+import {HeuristicAI, RandomAI} from './ai.js';
 let testing = false;
 let canvas = document.getElementById("myCanvas");
 let ctx = canvas.getContext("2d");
 let cardWidth = 0.110;
 let cardHeight = cardWidth / 0.7;
 let pingDelay = 2000; //ms
+let aiDelay = 500; //ms
 
 function sleep(ms) {
     //Sleep function, input in miliseconds
@@ -27,11 +29,13 @@ for (let i = 0; i < allSuits.length; i++) {
 
 //Human client
 export class Client {
-    constructor(root, server) {
+    constructor(root, server, player) {
+        if (player === undefined) { throw new Error("Client must have player defined.") }
         //Client for playing durak game
         this.server = server;
         this.state = undefined //this.server.getState(1); //Create new game of durak
         this.root = root; //Store root window
+        this.player = player; //Must be 0 or 1
     }
     render() {
         /*Renders the game on the provided window of Root class
@@ -65,17 +69,18 @@ export class Client {
         //Setup deckColumn items
         let deckColumn = new Box(this.root, 0.25, 1, "tl");
         let player0Box = new Box(deckColumn, 1, 0.25, "tl");
-        let player1Box = new Box(deckColumn, 1, 0.25, "br")
+        let player1Box = new Box(deckColumn, 1, 0.25, "br");
         let deck = new EmptyCard(deckColumn, { align: "cc", offset_y: 0.125, fillColor: "darkgrey", clickable: false });
-        new TextBox(deck, 0.5, 0.5, "cc", this.state.deck.length)
-        let tsar = new Card(deckColumn, { align: "cc", offset_y: -0.125, clickable: false }, this.state.tsar)
-        opts = this.state.activePlayer == 0 ? { align: "cc", textColor: "red" } : "cc" //Make active player red
-        new TextBox(player0Box, 1, 0.2, opts, "Computer") //"Player 0"
-        new TextBox(tsar, 1, 0.2, { align: "bc", offset_y: -1 }, "Tsar")
-        new TextBox(deck, 1, 0.2, { align: "bc", offset_y: -1 }, "Deck")
-        opts = this.state.activePlayer == 1 ? { align: "cc", textColor: "red" } : "cc" //Make active player red
-        new TextBox(player1Box, 1, 0.2, opts, "Human") //"Player 1"
-        //
+        new TextBox(deck, 0.5, 0.5, "cc", this.state.deck.length);
+        let tsar = new Card(deckColumn, { align: "cc", offset_y: -0.125, clickable: false }, this.state.tsar);
+        opts = this.state.activePlayer == 0 ? { align: "cc", textColor: "red" } : "cc"; //Make active player red
+        new TextBox(player0Box, 1, 0.2, opts, "Player 0"); //"Player 0"
+        new TextBox(tsar, 1, 0.2, { align: "bc", offset_y: -1 }, "Tsar");
+        new TextBox(deck, 1, 0.2, { align: "bc", offset_y: -1 }, "Deck");
+        opts = this.state.activePlayer == 1 ? { align: "cr", textColor: "red" } : "cr"; //Make active player red
+        new TextBox(player1Box, 1, 0.2, opts, "Player 1"); //"Player 1"
+        new Button(deckColumn, 0.7, 0.03, { align: "bc", offset_y: -0.015 }, "New Game", this.reportFactory("Meta New Game"));
+        new Button(deckColumn, 0.7, 0.03, { align: "bc", offset_y: -0.055 }, "Main Menu", this.reportFactory("Meta Main Menu"));
         //Setup play area 
         let playColumn = new Box(this.root, 0.70, 1, { align: "tl", offset_x: 0.25 });
         if (this.state.metaActions.includes("Meta Rematch")) {
@@ -102,7 +107,7 @@ export class Client {
             //Display the player field
             new CardMatrix(playColumn, 1, 0.25, { align: "tc", offset_y: fieldOffset }, [pad(field, "00")], { clickable: false });
             let buttonAction;
-            if (player === 1) {
+            if (this.player === this.state.activePlayer) {
                 buttonAction = (text) => this.reportFactory(text);
             } else {
                 buttonAction = () => false;
@@ -127,14 +132,23 @@ export class Client {
         return () => this.report(text)
     }
     async report(text) {
+        //Test if text is an action that should be handled by the client
+        if (text == "Meta Main Menu") {
+            //Render the main menu when the button is smashed
+            mainMenu.render();
+            return
+        }
         //Send action to the server
-        this.state = await this.server.applyAction(1, text);
-        //Rener on oppoent play
+        this.state = await this.server.applyAction(this.player, text);
+        if (text == "Meta New Game") {
+            //STUB What should the thing when a new game is requested? Needs to re-load
+        }
+        //Render on oppoent play
         this.renderOnMyTurn(pingDelay);
     }
     async renderOnMyTurn(pingDelay) {
         //Check to ensure a ping delay is defined
-        if (pingDelay===undefined) {
+        if (pingDelay === undefined) {
             throw new Error('pingDelay not defined in renderOnMyTurn.')
         }
         //Function to render the game, then wait for the state of the game to change, then render again
@@ -142,23 +156,29 @@ export class Client {
             this.root.empty();
             new TextBox(this.root, 1, 0.2, { align: "cc" }, "Connecting with Server (please wait up to 30 seconds)");
             //Get the state from the server
-            this.state = await this.server.getState(1);
-            console.log("First connection to server successful.")
+            this.state = await this.server.getState(this.player);
+            console.log("Client: First connection to server successful.")
+            if (this.count === 1){
+                throw "Was not supposed to get back here"
+            } else {
+                this.count = 1;
+            }
         }
         //Ensure the game is rendered
         this.render()
-        if (this.state.activePlayer == 0) {
+        if (this.state.activePlayer != this.player) {
+            let oldState = this.state;
+            let state
             //Wait until the server reports new state, then render
-            let state = await this.server.getState(1);
-            while (this.state.actionCount === state.actionCount) { //TODO Fails if game is refreshed at turn 1
+            do { //TODO Fails if game is refreshed at turn 1
                 await sleep(pingDelay);
-                state = await this.server.getState(1);
-            }
+                state = await this.server.getState(this.player);
+            } while (oldState.actionCount === state.actionCount)
             this.state = state;
             this.render()
-            console.log('Awaiting human action. (post)')
+            console.log('Client: Awaiting human action. (post)')
         } else {
-            console.log('Awaiting human action. (pre)')
+            console.log('Client: Awaiting human action. (pre)')
         }
     }
 }
@@ -170,9 +190,9 @@ class MainMenu {
     }
     render() {
         //helper function for creating a client
-        const gameCreator = (server, pingDelay) => {
+        const gameCreator = (server, pingDelay, player) => {
             //Starts a new game of durak
-            let client = new Client(root, server);
+            let client = new Client(root, server, player);
             client.renderOnMyTurn(pingDelay);
         }
         //Render the menu on the root
@@ -181,10 +201,18 @@ class MainMenu {
         let h = 0.07;
         new TextBox(this.root, w, h, { align: "tc", offset_y: 0.5 * h }, "Welcome to Durak")
         new TextBox(this.root, w, h, { align: "tc", offset_y: 2 * h }, "Choose Game Type")
-        new Button(this.root, w, h, { align: "tc", offset_y: 3 * h }, "Easy Computer", () => { gameCreator(new Server(), 1000) })
-        new Button(this.root, w, h, { align: "tc", offset_y: 4.5 * h }, "Medium Computer", () => { gameCreator(new Server(), 1000) })
-        new Button(this.root, w, h, { align: "tc", offset_y: 6 * h }, "Online as Player 0", () => { gameCreator(new Portal(), pingDelay) })
-        new Button(this.root, w, h, { align: "tc", offset_y: 7.5 * h }, "Online as Player 1", () => { gameCreator(new Portal(), pingDelay) })
+        new Button(this.root, w, h, { align: "tc", offset_y: 3 * h }, "Easy Computer", () => {
+            gameCreator(new Server(new RandomAI(aiDelay), "Human"), 1000, 1)
+        })
+        new Button(this.root, w, h, { align: "tc", offset_y: 4.5 * h }, "Medium Computer", () => {
+            gameCreator(new Server(new HeuristicAI(aiDelay), "Human"), 1000, 1)
+        })
+        new Button(this.root, w, h, { align: "tc", offset_y: 6 * h }, "Online as Player 0", () => {
+            gameCreator(new Portal(), pingDelay, 0)
+        })
+        new Button(this.root, w, h, { align: "tc", offset_y: 7.5 * h }, "Online as Player 1", () => {
+            gameCreator(new Portal(), pingDelay, 1)
+        })
     }
 }
 
